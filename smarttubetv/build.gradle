@@ -123,8 +123,9 @@ android {
     // https://stackoverflow.com/questions/18332474/how-to-set-versionname-in-apk-filename-using-gradle
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def project = "SmartTube"
-            def flavor = variant.productFlavors[-1].name.substring(2) // remove st prefix
+            def rawFlavor = variant.productFlavors[-1].name
+            def project = rawFlavor == "stkidtube" ? "Kidtube" : "SmartTube"
+            def flavor = rawFlavor.substring(2) // remove st prefix
             def buildType = variant.buildType.name.take(1)
             def version = variant.versionName
             def arch = output.getFilter(com.android.build.OutputFile.ABI)
@@ -173,6 +174,16 @@ android {
             targetSdkVersion project.properties.compileSdkVersion
 
             // The content of Universal apk
+            ndk {
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86'
+            }
+        }
+        stkidtube {
+            applicationId "org.kidtube.tv"
+            minSdkVersion 21
+            targetSdkVersion project.properties.compileSdkVersion
+            matchingFallbacks = ['stfdroid', 'ststable', 'stbeta']
+
             ndk {
                 abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86'
             }

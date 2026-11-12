@@ -21,6 +21,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.BootDialogPr
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
 import com.liskovsoft.smartyoutubetv2.common.app.views.SplashView;
 import com.liskovsoft.smartyoutubetv2.common.app.views.ViewManager;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.GDriveBackupWorker;
 import com.liskovsoft.smartyoutubetv2.common.misc.LocalDriveBackupWorker;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
@@ -91,6 +92,7 @@ public class SplashPresenter extends BasePresenter<SplashView> {
             sRunOnce = true;
             RxHelper.setupGlobalErrorHandler();
             initGlobalPrefs();
+            KidtubeManager.bootstrapIfNeeded(getContext());
             initProxy();
             initVideoStateService();
             initStreamReminderService();

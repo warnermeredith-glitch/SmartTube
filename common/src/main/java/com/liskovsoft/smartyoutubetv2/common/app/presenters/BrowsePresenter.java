@@ -36,6 +36,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.provide
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.interfaces.SectionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.interfaces.VideoGroupPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.BrowseView;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeCatalog;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.AppDataSourceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.BrowseProcessorManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
@@ -115,6 +117,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     @Override
     public void onViewInitialized() {
         super.onViewInitialized();
+        KidtubeManager.bootstrapIfNeeded(getContext());
 
         if (getView() == null) {
             return;
@@ -138,6 +141,9 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     @Override
     public void onViewResumed() {
         super.onViewResumed();
+        if (KidtubeManager.isKidtubeActive(getContext()) && isSection(KidtubeCatalog.SECTION_READY_TO_ROLL)) {
+            refresh(false);
+        }
 
         refreshIfNeeded();
     }
@@ -186,6 +192,9 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         String country = LocaleUtility.getCurrentLocale(getContext()).getCountry();
         int uploadsType = getMainUIData().isUploadsOldLookEnabled() ? BrowseSection.TYPE_GRID : BrowseSection.TYPE_MULTI_GRID;
 
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            mSectionsMapping.put(KidtubeCatalog.SECTION_READY_TO_ROLL, new BrowseSection(KidtubeCatalog.SECTION_READY_TO_ROLL, "🚀 " + getContext().getString(R.string.kidtube_ready_to_roll), BrowseSection.TYPE_GRID, R.drawable.icon_playlist, false));
+        }
         mSectionsMapping.put(MediaGroup.TYPE_HOME, new BrowseSection(MediaGroup.TYPE_HOME, getContext().getString(R.string.header_home), BrowseSection.TYPE_ROW, R.drawable.icon_home, false));
         mSectionsMapping.put(MediaGroup.TYPE_SHORTS, new BrowseSection(MediaGroup.TYPE_SHORTS, getContext().getString(R.string.header_shorts), BrowseSection.TYPE_SHORTS_GRID, R.drawable.icon_shorts));
         mSectionsMapping.put(MediaGroup.TYPE_TRENDING, new BrowseSection(MediaGroup.TYPE_TRENDING, getContext().getString(R.string.header_trending), BrowseSection.TYPE_ROW, R.drawable.icon_trending));
@@ -267,6 +276,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     private void initLocalGridMapping() {
+        mLocalGridMappings.put(KidtubeCatalog.SECTION_READY_TO_ROLL, () -> KidtubeManager.getReadyToRollItems(getContext()));
         mLocalGridMappings.put(MediaGroup.TYPE_PLAYBACK_QUEUE, () -> Playlist.instance().getAllReversed());
         mLocalGridMappings.put(MediaGroup.TYPE_BLOCKED_CHANNELS, this::getBlockedChannels);
     }
@@ -306,7 +316,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         int bootSectionId = getSidebarService().getBootSectionId();
 
         // Empty Home on first run fix. Switch to something non-empty.
-        if (!getSignInService().isSigned() && VideoStateService.instance(getContext()).isEmpty()) {
+        if (!KidtubeManager.isKidtubeActive(getContext()) && !getSignInService().isSigned() && VideoStateService.instance(getContext()).isEmpty()) {
             bootSectionId = MediaGroup.TYPE_MUSIC;
         }
 

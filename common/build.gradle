@@ -48,6 +48,9 @@ android {
         stbeta {}
         ststable {}
         stfdroid {}
+        stkidtube {
+            matchingFallbacks = ['stfdroid', 'ststable', 'stbeta']
+        }
     }
 }
 

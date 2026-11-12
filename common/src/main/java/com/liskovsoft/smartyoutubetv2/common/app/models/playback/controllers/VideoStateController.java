@@ -11,6 +11,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerU
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.service.VideoStateService.State;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.ScreensaverManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -36,6 +37,15 @@ public class VideoStateController extends BasePlayerController {
     private int mTickleCount;
     private boolean mIncognito;
     private final Runnable mUpdateHistory = this::saveState;
+    private final Runnable mKidtubeTicker = new Runnable() {
+        @Override
+        public void run() {
+            if (getPlayer() != null && getPlayer().isPlaying() && getVideo() != null) {
+                KidtubeManager.onPlaybackTick(getContext(), getVideo(), getPlayer());
+                Utils.postDelayed(this, 1_000);
+            }
+        }
+    };
     private long mNewVideoTimeMs;
     @Nullable
     private Boolean mRestoreLiveEdge;
@@ -131,6 +141,7 @@ public class VideoStateController extends BasePlayerController {
         }
 
         // Save previous state
+        Utils.removeCallbacks(mKidtubeTicker);
         if (getPlayer().containsMedia()) {
             setPlayEnabled(getPlayer().getPlayWhenReady());
             saveState();
@@ -161,6 +172,13 @@ public class VideoStateController extends BasePlayerController {
         }
 
         checkSleepTimer();
+    }
+
+    private void startKidtubeTicker() {
+        Utils.removeCallbacks(mKidtubeTicker);
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            Utils.postDelayed(mKidtubeTicker, 1_000);
+        }
     }
 
     private void checkSleepTimer() {
@@ -223,6 +241,7 @@ public class VideoStateController extends BasePlayerController {
         //restoreFormats();
 
         // In this state video length is not undefined.
+        startKidtubeTicker();
         restoreState();
     }
 
@@ -230,6 +249,7 @@ public class VideoStateController extends BasePlayerController {
     public void onPlay() {
         setPlayEnabled(true);
         showHideScreensaver(false);
+        startKidtubeTicker();
         // throttle seeking calls
         Utils.removeCallbacks(mUpdateHistory);
 
@@ -244,6 +264,7 @@ public class VideoStateController extends BasePlayerController {
         showHideScreensaver(true);
         // throttle seeking calls
         Utils.postDelayed(mUpdateHistory, 10_000);
+        Utils.removeCallbacks(mKidtubeTicker);
     }
 
     @Override
@@ -273,6 +294,7 @@ public class VideoStateController extends BasePlayerController {
         saveState();
 
         // Don't enable screensaver here, or you'll brake 'screen off' logic.
+        Utils.removeCallbacks(mKidtubeTicker);
         showHideScreensaver(true);
     }
 

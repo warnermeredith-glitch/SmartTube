@@ -19,6 +19,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuManager;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuProvider;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarService;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
@@ -73,6 +74,16 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
     }
 
     public void show() {
+        AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
+
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            KidtubeManager.showPinDialog(getContext(), "Unlock General Settings", this::showUnlocked);
+            return;
+        }
+        showUnlocked();
+    }
+
+    private void showUnlocked() {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
         appendBootToSection(settingsPresenter);

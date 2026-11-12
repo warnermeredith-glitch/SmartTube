@@ -27,6 +27,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.provide
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuProvider;
 import com.liskovsoft.smartyoutubetv2.common.app.views.ChannelUploadsView;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.StreamReminderService;
 import com.liskovsoft.smartyoutubetv2.common.prefs.BlockedChannelData;
@@ -182,6 +183,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
         }
 
         appendReturnToBackgroundVideoButton();
+        appendKidtubeParentMenuButton();
 
         for (Long menuItem : MainUIData.instance(getContext()).getMenuItemsOrdered()) {
             MenuAction menuAction = mMenuMapping.get(menuItem);
@@ -203,6 +205,7 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
         }
 
         appendReturnToBackgroundVideoButton();
+        appendKidtubeParentMenuButton();
 
         for (Long menuItem : MainUIData.instance(getContext()).getMenuItemsOrdered()) {
             MenuAction menuAction = mMenuMapping.get(menuItem);
@@ -215,6 +218,22 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
             String title = mVideo != null ? mVideo.getTitle() : null;
             mDialogPresenter.showDialog(title);
         }
+    }
+
+    private void appendKidtubeParentMenuButton() {
+        if (!KidtubeManager.isKidtubeActive(getContext()) || mVideo == null) {
+            return;
+        }
+        mDialogPresenter.appendSingleButton(
+                UiOptionItem.from(
+                        "🎓 Kidtube Parent Controls & Whitelist (PIN)",
+                        optionItem -> KidtubeManager.showPinDialog(
+                                getContext(),
+                                "Enter Parent PIN",
+                                () -> KidtubeManager.showParentDashboardDialog(getContext(), mVideo, false)
+                        )
+                )
+        );
     }
 
     private void appendAddToWatchLaterButton() {

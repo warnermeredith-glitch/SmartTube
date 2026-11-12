@@ -21,6 +21,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerC
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.VideoActionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.PlayerData;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
@@ -277,6 +278,10 @@ public class VideoLoaderController extends BasePlayerController {
 
         getVideo().sync(formatInfo);
 
+        if (!KidtubeManager.checkFormatInfoAndGate(getContext(), getVideo(), formatInfo, player)) {
+            return;
+        }
+
         // Fix stretched video for a couple milliseconds (before the onVideoSizeChanged gets called)
         applyAspectRatio(formatInfo);
 
@@ -369,6 +374,12 @@ public class VideoLoaderController extends BasePlayerController {
 
         if (item.hasVideo()) {
             // NOTE: Next clicked: instant playback even a mix
+            if (!KidtubeManager.canOpenVideoFromUi(getContext(), item)) {
+                if (getPlayer() != null) {
+                    getPlayer().setPlayWhenReady(false);
+                }
+                return;
+            }
             // NOTE: Bypass PIP fullscreen on next caused by startView
             getMainController().onNewVideo(item);
             //getPlayer().showOverlay(true);

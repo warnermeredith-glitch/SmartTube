@@ -24,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.listener.ViewEv
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.VideoMenuPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.PlaybackView;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.exoplayer.selector.FormatItem;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils.ChainProcessor;
@@ -111,6 +112,10 @@ public class PlaybackPresenter extends BasePresenter<PlaybackView> implements Pl
 
     public void openVideo(Video video) {
         if (video == null) {
+            return;
+        }
+
+        if (!KidtubeManager.canOpenVideoFromUi(getContext(), video)) {
             return;
         }
 

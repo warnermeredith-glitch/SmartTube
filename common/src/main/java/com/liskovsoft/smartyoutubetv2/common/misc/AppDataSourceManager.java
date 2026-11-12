@@ -4,6 +4,7 @@ import android.content.Context;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSimpleSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AccountSettingsPresenter;
@@ -40,6 +41,13 @@ public class AppDataSourceManager {
 
     public List<SettingsItem> getSettingItems(Context context) {
         List<SettingsItem> settingItems = new ArrayList<>();
+
+        if (KidtubeManager.isKidtubeActive(context)) {
+            settingItems.add(new SettingsItem(
+                    "🎓 Kidtube Controls & Time Bank",
+                    () -> KidtubeManager.showStatusAndParentEntryDialog(context, null),
+                    R.drawable.settings_block));
+        }
 
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_accounts), () -> AccountSettingsPresenter.instance(context).show(), R.drawable.settings_account));

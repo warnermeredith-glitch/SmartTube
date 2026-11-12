@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 
 /**
  * Shows boot dialogs one by one.
@@ -30,6 +31,9 @@ public class BootDialogPresenter extends BasePresenter<Void> {
     //}
 
     public void start() {
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            return;
+        }
         startUpdatePresenter();
     }
 

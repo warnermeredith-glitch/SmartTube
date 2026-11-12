@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.common.misc;
 import android.content.Context;
 
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeBrowseProcessor;
 
 import java.util.ArrayList;
 
@@ -11,6 +12,7 @@ public class BrowseProcessorManager implements BrowseProcessor {
 
     public BrowseProcessorManager(Context context, OnItemReady onItemReady) {
         mProcessors = new ArrayList<>();
+        mProcessors.add(new KidtubeBrowseProcessor(context, onItemReady));
         mProcessors.add(new DeArrowProcessor(context, onItemReady));
         mProcessors.add(new UnlocalizedTitleProcessor(context, onItemReady));
     }

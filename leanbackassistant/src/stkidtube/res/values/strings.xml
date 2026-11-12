@@ -1,0 +1,5 @@
+﻿<resources translatable="false">
+    <string name="search_label">Kidtube</string>
+    <string name="settings_description">Kidtube Learning Videos</string>
+    <string name="search_authority">org.kidtube.tv.search_provider</string>
+</resources>

@@ -7,11 +7,16 @@ import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeCatalog;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs;
 import com.liskovsoft.smartyoutubetv2.common.prefs.AppPrefs.ProfileChangeListener;
 import com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -236,6 +241,9 @@ public class SidebarService implements ProfileChangeListener {
     }
 
     private void initSections() {
+        if (KidtubeManager.isKidtubeActive(mContext)) {
+            mDefaultSections.put(R.string.kidtube_ready_to_roll, KidtubeCatalog.SECTION_READY_TO_ROLL);
+        }
         mDefaultSections.put(R.string.header_notifications, MediaGroup.TYPE_NOTIFICATIONS);
         mDefaultSections.put(R.string.header_home, MediaGroup.TYPE_HOME);
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
@@ -257,6 +265,10 @@ public class SidebarService implements ProfileChangeListener {
     }
 
     private void initPinnedItems() {
+        if (KidtubeManager.isKidtubeActive(mContext)) {
+            setupKidtubeSidebar(null);
+            return;
+        }
         for (int sectionId : mDefaultSections.values()) {
             // Hidden sections
             enableSection(sectionId, !Helpers.equalsAny(sectionId, new int[] {
@@ -293,7 +305,7 @@ public class SidebarService implements ProfileChangeListener {
         String[] split = Helpers.splitData(data);
 
         mPinnedItems = Helpers.parseList(split, 0, Video::fromString);
-        mBootSectionId = Helpers.parseInt(split, 1, MediaGroup.TYPE_HOME);
+        mBootSectionId = Helpers.parseInt(split, 1, KidtubeManager.isKidtubeActive(mContext) ? KidtubeCatalog.SECTION_READY_TO_ROLL : MediaGroup.TYPE_HOME);
         mIsSettingsSectionEnabled = Helpers.parseBoolean(split, 2, true);
 
         transferOldPinnedItems();
@@ -318,6 +330,63 @@ public class SidebarService implements ProfileChangeListener {
         if (oldPinnedItems != null && !oldPinnedItems.isEmpty()) {
             mPinnedItems = oldPinnedItems;
         }
+    }
+
+    public void setupKidtubeSidebar(List<Video> subjectHubs) {
+        List<Video> existingCustomPins = new ArrayList<>();
+        Set<String> hubGroupIds = new HashSet<>();
+        if (subjectHubs != null) {
+            for (Video hub : subjectHubs) {
+                if (hub != null && hub.channelGroupId != null) {
+                    hubGroupIds.add(hub.channelGroupId);
+                }
+            }
+        }
+
+        if (mPinnedItems != null) {
+            for (Video existing : mPinnedItems) {
+                if (existing != null && existing.sectionId == -1) {
+                    if (existing.channelGroupId == null || !hubGroupIds.contains(existing.channelGroupId)) {
+                        existingCustomPins.add(existing);
+                    }
+                }
+            }
+        }
+
+        mPinnedItems = new ArrayList<>();
+
+        Video readySection = new Video();
+        readySection.sectionId = KidtubeCatalog.SECTION_READY_TO_ROLL;
+        mPinnedItems.add(readySection);
+
+        if (subjectHubs != null) {
+            for (Video hub : subjectHubs) {
+                if (hub != null) {
+                    mPinnedItems.add(hub);
+                }
+            }
+        }
+
+        mPinnedItems.addAll(existingCustomPins);
+
+        int[] enabledCoreSections = new int[] {
+                MediaGroup.TYPE_HOME,
+                MediaGroup.TYPE_SUBSCRIPTIONS,
+                MediaGroup.TYPE_CHANNEL_UPLOADS,
+                MediaGroup.TYPE_HISTORY,
+                MediaGroup.TYPE_USER_PLAYLISTS,
+                MediaGroup.TYPE_SETTINGS
+        };
+        for (int sectionId : enabledCoreSections) {
+            Video item = new Video();
+            item.sectionId = sectionId;
+            mPinnedItems.add(item);
+        }
+
+        mIsSettingsSectionEnabled = true;
+        mBootSectionId = KidtubeCatalog.SECTION_READY_TO_ROLL;
+        cleanupPinnedItems();
+        persistState();
     }
 
     public void persistState() {

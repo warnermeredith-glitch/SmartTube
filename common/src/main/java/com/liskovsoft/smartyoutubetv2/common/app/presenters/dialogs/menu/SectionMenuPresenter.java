@@ -19,6 +19,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.VideoMe
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuManager;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.menu.providers.ContextMenuProvider;
 import com.liskovsoft.smartyoutubetv2.common.app.views.SplashView;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
@@ -80,7 +81,48 @@ public class SectionMenuPresenter extends BaseMenuPresenter {
         mSection = section;
         mVideo = section.getData() instanceof Video ? (Video) section.getData() : null;
 
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            showKidtubeProtectedSectionMenu();
+            return;
+        }
         MediaServiceManager.instance().authCheck(this::obtainPlaylistsAndShowDialogSigned, this::prepareAndShowDialogUnsigned);
+    }
+
+    private void showKidtubeProtectedSectionMenu() {
+        if (getContext() == null) {
+            return;
+        }
+        appendReturnToBackgroundVideoButton();
+        appendRefreshButton();
+        mDialogPresenter.appendSingleButton(
+                UiOptionItem.from("🎲 Roll a Random Learning Video", optionItem -> {
+                    mDialogPresenter.closeDialog();
+                    KidtubeManager.rollRandomLearningPlaylist(getContext());
+                }));
+        mDialogPresenter.appendSingleButton(
+                UiOptionItem.from("🎓 Kidtube Parent Controls (PIN)", optionItem -> {
+                    KidtubeManager.showPinDialog(
+                            getContext(),
+                            "Enter Parent PIN",
+                            () -> KidtubeManager.showParentDashboardDialog(getContext(), null, false)
+                    );
+                }));
+        mDialogPresenter.appendSingleButton(
+                UiOptionItem.from("🔧 Edit Sidebar Section (PIN)", optionItem -> {
+                    KidtubeManager.showPinDialog(
+                            getContext(),
+                            "Unlock Sidebar Editor",
+                            () -> {
+                                mDialogPresenter.clearBackstack();
+                                MediaServiceManager.instance().authCheck(
+                                        this::obtainPlaylistsAndShowDialogSigned,
+                                        this::prepareAndShowDialogUnsigned
+                                );
+                            }
+                    );
+                }));
+        String title = mSection != null ? mSection.getTitle() : "Kidtube Sidebar";
+        mDialogPresenter.showDialog(title, this::disposeActions);
     }
 
     private void obtainPlaylistsAndShowDialogSigned() {

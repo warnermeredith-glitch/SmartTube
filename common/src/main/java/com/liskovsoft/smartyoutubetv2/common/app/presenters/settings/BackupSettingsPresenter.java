@@ -13,6 +13,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.GoogleSignInPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.service.SidebarService;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.BackupAndRestoreManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.GDriveBackupManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.GDriveBackupWorker;
@@ -57,6 +58,10 @@ public class BackupSettingsPresenter extends BasePresenter<Void> {
     }
 
     public void show() {
+        if (KidtubeManager.isKidtubeActive(getContext())) {
+            KidtubeManager.showPinDialog(getContext(), "Unlock Backup & Restore", this::createAndShowDialog);
+            return;
+        }
         createAndShowDialog();
     }
 

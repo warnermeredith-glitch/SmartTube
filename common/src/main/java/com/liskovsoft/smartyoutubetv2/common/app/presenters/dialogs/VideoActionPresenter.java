@@ -8,6 +8,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.ChannelUploadsPresen
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
+import com.liskovsoft.smartyoutubetv2.common.kidtube.KidtubeManager;
 import com.liskovsoft.smartyoutubetv2.common.misc.MediaServiceManager;
 import com.liskovsoft.smartyoutubetv2.common.utils.LoadingManager;
 
@@ -24,6 +25,10 @@ public class VideoActionPresenter extends BasePresenter<Void> {
 
     public void apply(Video item) {
         if (item == null) {
+            return;
+        }
+
+        if (KidtubeManager.handleSpecialVideoClick(getContext(), item)) {
             return;
         }
 
