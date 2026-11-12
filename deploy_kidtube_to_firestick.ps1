@@ -37,18 +37,23 @@ if (-not [string]::IsNullOrWhiteSpace($FireStickIp)) {
     Write-Host ""
     Write-Host "Scanning your home Wi-Fi (192.168.1.x) for Fire Sticks with ADB Debugging ON (port 5555)..." -ForegroundColor Yellow
 
-    # Check known Fire Stick 192.168.1.187 first, then sweep subnet in parallel
-    $ipsToCheck = @("192.168.1.187") + (1..254 | ForEach-Object { "192.168.1.$_" } | Where-Object { $_ -ne "192.168.1.187" -and $_ -ne "192.168.1.153" })
-
-    $openIps = $ipsToCheck | ForEach-Object {
-        $ip = $_
-        $client = New-Object System.Net.Sockets.TcpClient
-        $iar = $client.BeginConnect($ip, 5555, $null, $null)
-        if ($iar.AsyncWaitHandle.WaitOne(35, $false) -and $client.Connected) {
-            $client.Close()
-            $ip
-        } else {
-            $client.Close()
+    # Scan in batches of 32 so Windows half-open socket rate-limiting never drops a Fire Stick!
+    $openIps = @()
+    for ($batchStart = 1; $batchStart -le 254; $batchStart += 32) {
+        $batchEnd = [Math]::Min(254, $batchStart + 31)
+        $jobs = @()
+        for ($i = $batchStart; $i -le $batchEnd; $i++) {
+            if ($i -eq 153) { continue }
+            $ip = "192.168.1.$i"
+            $c = New-Object System.Net.Sockets.TcpClient
+            $jobs += @{ Ip = $ip; Client = $c; Iar = $c.BeginConnect($ip, 5555, $null, $null) }
+        }
+        Start-Sleep -Milliseconds 650
+        foreach ($j in $jobs) {
+            if ($j.Iar.IsCompleted -and $j.Client.Connected) {
+                $openIps += $j.Ip
+            }
+            $j.Client.Close()
         }
     }
 
