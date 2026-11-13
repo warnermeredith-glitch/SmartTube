@@ -3,22 +3,27 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
-$projectDir = "c:\Users\warne\.gemini\antigravity\Projects\Technical and Systems Issues\Kidtube-SmartTube"
+$adb = if (Get-Command adb -ErrorAction SilentlyContinue) {
+    (Get-Command adb).Source
+} else {
+    "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+}
+$projectDir = $PSScriptRoot
 
 if (-not (Test-Path $adb)) {
     Write-Host "ERROR: Could not find adb.exe at $adb" -ForegroundColor Red
     exit 1
 }
 
-# Locate the newest signed Universal Kidtube APK (Release preferred, Debug fallback)
+# Locate the newest signed Universal Kidtube APK (dist/ or build outputs)
 $apkCandidates = @(
+    Get-ChildItem "$projectDir\dist\Kidtube_Universal_FireTV.apk" -ErrorAction SilentlyContinue
     Get-ChildItem "$projectDir\smarttubetv\build\outputs\apk\stkidtube\release\*universal*.apk" -ErrorAction SilentlyContinue
     Get-ChildItem "$projectDir\smarttubetv\build\outputs\apk\stkidtube\debug\*universal*.apk" -ErrorAction SilentlyContinue
 ) | Sort-Object LastWriteTime -Descending
 
 if ($apkCandidates.Count -eq 0) {
-    Write-Host "ERROR: No built Kidtube universal APK found yet in smarttubetv\build\outputs\apk\stkidtube\" -ForegroundColor Red
+    Write-Host "ERROR: No built Kidtube universal APK found yet in dist\ or smarttubetv\build\outputs\apk\stkidtube\" -ForegroundColor Red
     exit 1
 }
 
@@ -34,17 +39,29 @@ $targets = New-Object System.Collections.Generic.List[string]
 if (-not [string]::IsNullOrWhiteSpace($FireStickIp)) {
     $targets.Add($FireStickIp.Trim())
 } else {
-    Write-Host ""
-    Write-Host "Scanning your home Wi-Fi (192.168.1.x) for Fire Sticks with ADB Debugging ON (port 5555)..." -ForegroundColor Yellow
+    # Auto-detect active IPv4 /24 prefix (defaults to 192.168.1)
+    $subnetPrefix = "192.168.1"
+    $selfOctet = -1
+    $localIpObj = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.IPAddress -match '^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)' -and $_.PrefixOrigin -ne 'WellKnown' } |
+        Select-Object -First 1
+    if ($localIpObj) {
+        $octets = $localIpObj.IPAddress.Split('.')
+        $subnetPrefix = "$($octets[0]).$($octets[1]).$($octets[2])"
+        $selfOctet = [int]$octets[3]
+    }
 
-    # Scan in batches of 32 so Windows half-open socket rate-limiting never drops a Fire Stick!
+    Write-Host ""
+    Write-Host "Scanning home Wi-Fi ($subnetPrefix.x) for Fire Sticks with ADB Debugging ON (port 5555)..." -ForegroundColor Yellow
+
+    # Scan in batches of 32 so Windows half-open socket rate-limiting never drops a Fire Stick
     $openIps = @()
     for ($batchStart = 1; $batchStart -le 254; $batchStart += 32) {
         $batchEnd = [Math]::Min(254, $batchStart + 31)
         $jobs = @()
         for ($i = $batchStart; $i -le $batchEnd; $i++) {
-            if ($i -eq 153) { continue }
-            $ip = "192.168.1.$i"
+            if ($i -eq $selfOctet) { continue }
+            $ip = "$subnetPrefix.$i"
             $c = New-Object System.Net.Sockets.TcpClient
             $jobs += @{ Ip = $ip; Client = $c; Iar = $c.BeginConnect($ip, 5555, $null, $null) }
         }
@@ -71,7 +88,7 @@ if ($targets.Count -eq 0) {
     Write-Host "  1. Go to Settings (gear icon) -> My Fire TV -> About"
     Write-Host "  2. Highlight 'Fire TV Stick' and click the center Select button 7 times rapidly until it says 'You are already a developer'."
     Write-Host "  3. Press Back once -> click 'Developer Options' -> turn 'ADB Debugging' ON (and 'Install unknown apps' if listed)."
-    Write-Host "  4. Re-run this script (or ask Carl to push Kidtube)!"
+    Write-Host "  4. Re-run this script!"
     exit 2
 }
 
@@ -109,7 +126,7 @@ foreach ($ip in $targets) {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  -> SUCCESS! Launching Kidtube on your TV now..." -ForegroundColor Green
         & $adb -s $serial shell monkey -p org.kidtube.tv -c android.intent.category.LEANBACK_LAUNCHER 1 | Out-Null
-        Write-Host "  -> Kidtube is live on $ip! (Default Parent PIN: 1414)" -ForegroundColor Cyan
+        Write-Host "  -> Kidtube is live on $ip!" -ForegroundColor Cyan
     } else {
         Write-Host "  -> Install reported exit code $LASTEXITCODE on $ip." -ForegroundColor Red
     }
